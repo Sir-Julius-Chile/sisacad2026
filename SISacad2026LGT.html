@@ -862,9 +862,16 @@
       var students=appData.students[cid]||[];
       document.getElementById('attDayLabel').textContent='Día: '+date;
       if(!students.length){cont.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);">Sin alumnos</div>';return;}
+      // Pre-guardar "presente" para todos los alumnos sin registro en esta fecha
+      var changed=false;
+      students.forEach(function(s){
+        if(!appData.attendance[cid][s.id]){appData.attendance[cid][s.id]={};changed=true;}
+        if(!appData.attendance[cid][s.id][date]){appData.attendance[cid][s.id][date]='presente';changed=true;}
+      });
+      if(changed)saveData();
       var h='<table><thead><tr><th>N°</th><th>Estudiante</th><th>Estado</th><th>% Asistencia</th><th>Alertas</th></tr></thead><tbody>';
       students.forEach(function(s,i){
-        var st=(appData.attendance[cid][s.id]&&appData.attendance[cid][s.id][date])||'presente';
+        var st=appData.attendance[cid][s.id][date];
         var at=getAttStats(cid,s.id);
         var p=at.total>0?((at.presente+at.atrasado+at.justificado)/at.total*100):100;
         var al=at.total>0&&p<85?'<span class="alert-badge alert-red">Asist. < 85%</span>':'';
@@ -873,7 +880,7 @@
           '<option value="ausente"'+(st==='ausente'?' selected':'')+'>Ausente</option>'+
           '<option value="atrasado"'+(st==='atrasado'?' selected':'')+'>Atrasado</option>'+
           '<option value="justificado"'+(st==='justificado'?' selected':'')+'>Justificado</option></select></td>'+
-          '<td>'+(at.total>0?p.toFixed(1)+'%':'Sin datos')+'</td><td>'+al+'</td></tr>';
+          '<td>'+(p.toFixed(1)+'%')+'</td><td>'+al+'</td></tr>';
       });
       h+='</tbody></table><div class="flex mt-1"><button class="btn-success" onclick="saveAttendance()">Guardar Asistencia</button></div>';
       cont.innerHTML=h;
