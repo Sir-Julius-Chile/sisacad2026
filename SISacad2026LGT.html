@@ -898,8 +898,14 @@
 
     function getAttStats(cid,sid) {
       var r={presente:0,ausente:0,atrasado:0,justificado:0,total:0};
-      if(!appData.attendance||!appData.attendance[cid]||!appData.attendance[cid][sid])return r;
-      Object.keys(appData.attendance[cid][sid]).forEach(function(d){var st=appData.attendance[cid][sid][d];if(r[st]!==undefined)r[st]++;r.total++;});
+      var today=getToday();
+      var sAtt=appData.attendance&&appData.attendance[cid]&&appData.attendance[cid][sid]?appData.attendance[cid][sid]:{};
+      var allDays=getSchoolDays(cid).filter(function(d){return d<=today;});
+      allDays.forEach(function(d){
+        var st=sAtt[d]||'presente';
+        if(r[st]!==undefined)r[st]++;
+        r.total++;
+      });
       return r;
     }
 
