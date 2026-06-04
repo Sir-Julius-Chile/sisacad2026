@@ -533,7 +533,7 @@
 
     var DEFAULT_DATA = {
       users:[{id:'u1',username:'admin',passwordHash:'c81da252bb0cdc8b1fbbb1ca80a97775b204b336d461718d791ebc5897bf581f',role:'admin',permissions:{all:true},headTeacherCourse:''},{id:'u2',username:'jmolina',passwordHash:'75a2916ba989770d39bacb60f0cbfd6432bc55d0e0f860e47e5c54661e065299',role:'admin',permissions:{all:true},headTeacherCourse:''}],
-      students:{},grades:{},attendance:{},observations:{},_citations:[],_subjectGroups:{},_schoolYear:{start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-07-13',winterEnd:'2026-07-24',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']},
+      students:{},grades:{},attendance:{},observations:{},_citations:[],_subjectGroups:{},_schoolYear:{start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-06-22',winterEnd:'2026-07-03',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']},
       gasUrl:'https://script.google.com/macros/s/AKfycbw3TFi1_esiqYnnOl9h-r5_UqJ2B5XBFOtXNWmhJsPRR-sk0fT_rLBkXCYV1gjvz58/exec'
     };
     Object.keys(COURSES_SUBJECTS).forEach(function(c){DEFAULT_DATA.students[c]=[];});
@@ -564,13 +564,13 @@
     // migrate students to expanded fields
     (function migrateStudents(){
       var changed=false;
-      if(!appData._schoolYear){appData._schoolYear={start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-07-13',winterEnd:'2026-07-24',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']};changed=true;}
+      if(!appData._schoolYear){appData._schoolYear={start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-06-22',winterEnd:'2026-07-03',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']};changed=true;}
       else{
         if(!appData._schoolYear.holidays){appData._schoolYear.holidays=[];changed=true;}
         if(appData._schoolYear.holidays.indexOf('2026-05-22')<0){appData._schoolYear.holidays.push('2026-05-22');changed=true;}
         if(appData._schoolYear.holidays.indexOf('2026-07-17')<0){appData._schoolYear.holidays.push('2026-07-17');changed=true;}
         if(!appData._schoolYear.end4medio){appData._schoolYear.end4medio='2026-11-20';changed=true;}
-        if(!appData._schoolYear.winterStart){appData._schoolYear.winterStart='2026-07-13';appData._schoolYear.winterEnd='2026-07-24';changed=true;}
+        if(appData._schoolYear.winterStart!=='2026-06-22'){appData._schoolYear.winterStart='2026-06-22';appData._schoolYear.winterEnd='2026-07-03';changed=true;}
       }
       Object.keys(appData.students).forEach(function(c){
         appData.students[c].forEach(function(s){
@@ -777,7 +777,7 @@
     }
     function parseLocalDate(s){var p=s.split('-');return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
     function toDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-    function getSchoolYear(){return appData._schoolYear||{start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-07-13',winterEnd:'2026-07-24',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']};}
+    function getSchoolYear(){return appData._schoolYear||{start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-06-22',winterEnd:'2026-07-03',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']};}
     function getSchoolDays(cid){
       var sy=getSchoolYear(),days=[],start=parseLocalDate(sy.start);
       var is4Medio=cid&&(cid.indexOf('4MC')>=0||cid.indexOf('4A')>=0||cid.indexOf('4B')>=0);
@@ -1997,7 +1997,7 @@
         if(!d._citations)d._citations=[];
         if(!d._subjectGroups)d._subjectGroups={};
         if(!d._schoolYear)d._schoolYear=JSON.parse(JSON.stringify(DEFAULT_DATA._schoolYear));
-        else{if(!d._schoolYear.holidays)d._schoolYear.holidays=[];if(!d._schoolYear.end4medio)d._schoolYear.end4medio='2026-11-20';if(!d._schoolYear.winterStart){d._schoolYear.winterStart='2026-07-13';d._schoolYear.winterEnd='2026-07-24';}}
+        else{if(!d._schoolYear.holidays)d._schoolYear.holidays=[];if(!d._schoolYear.end4medio)d._schoolYear.end4medio='2026-11-20';d._schoolYear.winterStart='2026-06-22';d._schoolYear.winterEnd='2026-07-03';}
         Object.keys(d.students||{}).forEach(function(c){d.students[c].forEach(function(s){if(!s.rut)s.rut='';if(!s.ap1_nombre){s.ap1_nombre='';s.ap1_rut='';s.ap1_parentesco='';s.ap1_fono='';s.ap1_email='';s.ap1_direccion='';}if(!s.ap2_nombre){s.ap2_nombre='';s.ap2_rut='';s.ap2_parentesco='';s.ap2_fono='';s.ap2_email='';}if(!s.condiciones)s.condiciones='';if(!s.pie)s.pie=false;if(!s.pie_diagnostico)s.pie_diagnostico='';});});
         if(confirm('Datos de backup cargados ('+Object.keys(d.students||{}).length+' cursos, '+(d._citations||[]).length+' citaciones). Reemplazar datos actuales?')){appData=d;saveData();showToast('Backup compatible migrado. Recargando...');setTimeout(function(){location.reload();},1500);}}catch(err){showToast('Error al cargar backup: archivo invalido',true);}input.value='';};
       r.readAsText(f);
