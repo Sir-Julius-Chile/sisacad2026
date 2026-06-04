@@ -783,6 +783,7 @@
       var is4Medio=cid&&(cid.indexOf('4MC')>=0||cid.indexOf('4A')>=0||cid.indexOf('4B')>=0);
       var end=parseLocalDate(is4Medio?sy.end4medio:sy.end);
       var cur=new Date(start),wS=parseLocalDate(sy.winterStart),wE=parseLocalDate(sy.winterEnd);
+      console.log('[getSchoolDays] start='+sy.start+' end='+(is4Medio?sy.end4medio:sy.end)+' winter='+sy.winterStart+'..'+sy.winterEnd+' holidays='+sy.holidays.length);
       while(cur<=end){
         var ds=toDateStr(cur);
         if(cur.getDay()!==0&&cur.getDay()!==6&&sy.holidays.indexOf(ds)<0&&!(cur>=wS&&cur<=wE))days.push(ds);
@@ -902,6 +903,7 @@
       var today=getToday();
       var sAtt=appData.attendance&&appData.attendance[cid]&&appData.attendance[cid][sid]?appData.attendance[cid][sid]:{};
       var allDays=getSchoolDays(cid).filter(function(d){return d<=today;});
+      console.log('[getAttStats] cid='+cid+' today='+today+' schoolDays='+getSchoolDays(cid).length+' filtered='+allDays.length+' first='+allDays[0]+' last='+allDays[allDays.length-1]);
       allDays.forEach(function(d){
         var st=sAtt[d]||'presente';
         if(r[st]!==undefined)r[st]++;
