@@ -213,11 +213,28 @@ function saveDataSeparatSheets(data, timestamp) {
     // 7. Citaciones
     try {
       if (data._citations && data._citations.length) {
-        var citSheet = getOrCreateSheet(ss, 'citaciones', ['id', 'course', 'studentName', 'motivo', 'fecha', 'hora', 'departamento', 'profesor', 'estado', 'observaciones', 'createdAt']);
+        var citHeaders = ['id', 'courseId', 'studentId', 'date', 'horaInicio', 'horaTermino', 'departamento', 'motivo', 'observacion', 'pie', 'asistio', 'createdBy', 'createdAt'];
+        var citSheet = getOrCreateSheet(ss, 'citaciones', citHeaders);
+        // Migrate headers if sheet exists with old schema
+        if (ss.getSheetByName(sheetName('citaciones'))) {
+          var hRow = citSheet.getRange(1, 1, 1, citHeaders.length).getValues()[0];
+          if (hRow.join('|') !== citHeaders.join('|')) {
+            ss.deleteSheet(citSheet);
+            citSheet = ss.insertSheet(sheetName('citaciones'));
+            citSheet.getRange(1, 1, 1, citHeaders.length).setValues([citHeaders]);
+          }
+        }
         var citRows = [];
         for (var cti = 0; cti < data._citations.length; cti++) {
           var c = data._citations[cti];
-          citRows.push([c.id || '', c.course || '', c.studentName || '', c.motivo || '', c.fecha || '', c.hora || '', c.departamento || '', c.profesor || '', c.estado || '', c.observaciones || '', c.createdAt || '']);
+          citRows.push([
+            c.id || '', c.courseId || '', c.studentId || '',
+            c.date || '', c.horaInicio || '', c.horaTermino || '',
+            c.departamento || '', c.motivo || '', c.observacion || '',
+            c.pie ? 'SI' : 'NO',
+            c.asistio === true ? 'SI' : (c.asistio === false ? 'NO' : ''),
+            c.createdBy || '', c.createdAt || ''
+          ]);
         }
         clearAndFill(citSheet, citRows);
         log.push('citaciones:' + citRows.length);
@@ -337,9 +354,10 @@ function loadData() {
       var asisRows = readTable(asisSheet, ['course', 'studentId', 'date', 'status']);
       for (var asi = 0; asi < asisRows.length; asi++) {
         var ar = asisRows[asi];
+        var dateKey = gsDateStr(ar.date, 'yyyy-MM-dd');
         if (!result.attendance[ar.course]) result.attendance[ar.course] = {};
         if (!result.attendance[ar.course][ar.studentId]) result.attendance[ar.course][ar.studentId] = {};
-        result.attendance[ar.course][ar.studentId][ar.date] = ar.status;
+        result.attendance[ar.course][ar.studentId][dateKey] = ar.status;
       }
     }
 
@@ -352,7 +370,7 @@ function loadData() {
         var or_ = obsRows[oi];
         if (!result.observations[or_.course]) result.observations[or_.course] = {};
         if (!result.observations[or_.course][or_.studentId]) result.observations[or_.course][or_.studentId] = [];
-        result.observations[or_.course][or_.studentId].push({ date: or_.date, text: or_.text, type: or_.type });
+        result.observations[or_.course][or_.studentId].push({ date: gsDateStr(or_.date, 'yyyy-MM-dd'), text: or_.text, type: or_.type });
       }
     }
 
@@ -360,7 +378,25 @@ function loadData() {
     result._citations = [];
     var citSheet = ss.getSheetByName(sheetName('citaciones'));
     if (citSheet && citSheet.getLastRow() > 1) {
-      result._citations = readTable(citSheet, ['id', 'course', 'studentName', 'motivo', 'fecha', 'hora', 'departamento', 'profesor', 'estado', 'observaciones', 'createdAt']);
+      var citRows = readTable(citSheet, ['id', 'courseId', 'studentId', 'date', 'horaInicio', 'horaTermino', 'departamento', 'motivo', 'observacion', 'pie', 'asistio', 'createdBy', 'createdAt']);
+      for (var ci = 0; ci < citRows.length; ci++) {
+        var cit = citRows[ci];
+        result._citations.push({
+          id: cit.id,
+          courseId: cit.courseId,
+          studentId: cit.studentId,
+          date: gsDateStr(cit.date, 'yyyy-MM-dd'),
+          horaInicio: gsDateStr(cit.horaInicio, 'HH:mm'),
+          horaTermino: gsDateStr(cit.horaTermino, 'HH:mm'),
+          departamento: cit.departamento,
+          motivo: cit.motivo,
+          observacion: cit.observacion,
+          pie: cit.pie === 'SI',
+          asistio: cit.asistio === 'SI' ? true : (cit.asistio === 'NO' ? false : null),
+          createdBy: cit.createdBy,
+          createdAt: gsDateStr(cit.createdAt, 'yyyy-MM-dd HH:mm:ss')
+        });
+      }
     }
 
     // Leer grupos
@@ -382,8 +418,9 @@ function loadData() {
       var calRows = readTable(calSheet, ['key', 'value']);
       for (var cali = 0; cali < calRows.length; cali++) {
         var cr = calRows[cali];
-        if (cr.key === 'holiday') { result._schoolYear.holidays.push(cr.value); }
-        else { result._schoolYear[cr.key] = cr.value; }
+        var val = gsDateStr(cr.value, 'yyyy-MM-dd');
+        if (cr.key === 'holiday') { result._schoolYear.holidays.push(val); }
+        else { result._schoolYear[cr.key] = val; }
       }
     }
 
@@ -446,6 +483,14 @@ function readTable(sheet, columns) {
     result.push(obj);
   }
   return result;
+}
+
+// Convert Google Sheets Date object to formatted string (handles auto-date-conversion)
+function gsDateStr(val, fmt) {
+  if (val instanceof Date && !isNaN(val)) {
+    return Utilities.formatDate(val, 'America/Santiago', fmt);
+  }
+  return String(val || '');
 }
 
 function clearData() {
