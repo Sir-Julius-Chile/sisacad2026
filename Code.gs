@@ -110,7 +110,18 @@ function saveDataSeparatSheets(data, timestamp) {
     // 3. Alumnos
     try {
       if (data.students) {
-        var alumSheet = getOrCreateSheet(ss, 'alumnos', ['course', 'id', 'name', 'rut', 'apoderado1', 'apoderado2', 'condiciones', 'pie', 'pieDiagnostico']);
+        var alumHeaders = ['course', 'id', 'name', 'rut', 'ap1_nombre', 'ap1_rut', 'ap1_parentesco', 'ap1_fono', 'ap1_email', 'ap1_direccion', 'ap2_nombre', 'ap2_rut', 'ap2_parentesco', 'ap2_fono', 'ap2_email', 'condiciones', 'pie', 'pie_diagnostico'];
+        var alumSheet = getOrCreateSheet(ss, 'alumnos', alumHeaders);
+        // Migrate headers if sheet exists with old schema
+        var alumExisting = ss.getSheetByName(sheetName('alumnos'));
+        if (alumExisting) {
+          var hRowAlum = alumExisting.getRange(1, 1, 1, alumHeaders.length).getValues()[0];
+          if (hRowAlum.join('|') !== alumHeaders.join('|')) {
+            ss.deleteSheet(alumExisting);
+            alumSheet = ss.insertSheet(sheetName('alumnos'));
+            alumSheet.getRange(1, 1, 1, alumHeaders.length).setValues([alumHeaders]);
+          }
+        }
         var alumRows = [];
         var courseKeys = Object.keys(data.students);
         for (var ci = 0; ci < courseKeys.length; ci++) {
@@ -118,7 +129,10 @@ function saveDataSeparatSheets(data, timestamp) {
           var list = data.students[course] || [];
           for (var si = 0; si < list.length; si++) {
             var s = list[si];
-            alumRows.push([course, s.id || '', s.name || '', s.rut || '', s.apoderado1 || '', (s.apoderado2||''), (s.condiciones||''), s.pie ? 'SI' : 'NO', s.pieDiagnostico || '']);
+            alumRows.push([course, s.id || '', s.name || '', s.rut || '',
+              s.ap1_nombre || '', s.ap1_rut || '', s.ap1_parentesco || '', s.ap1_fono || '', s.ap1_email || '', s.ap1_direccion || '',
+              s.ap2_nombre || '', s.ap2_rut || '', s.ap2_parentesco || '', s.ap2_fono || '', s.ap2_email || '',
+              s.condiciones || '', s.pie ? 'SI' : 'NO', s.pie_diagnostico || '']);
           }
         }
         clearAndFill(alumSheet, alumRows);
@@ -313,15 +327,15 @@ function loadData() {
     result.students = {};
     var alumSheet = ss.getSheetByName(sheetName('alumnos'));
     if (alumSheet && alumSheet.getLastRow() > 1) {
-      var alumRows = readTable(alumSheet, ['course', 'id', 'name', 'rut', 'apoderado1', 'apoderado2', 'condiciones', 'pie', 'pieDiagnostico']);
+      var alumRows = readTable(alumSheet, ['course', 'id', 'name', 'rut', 'ap1_nombre', 'ap1_rut', 'ap1_parentesco', 'ap1_fono', 'ap1_email', 'ap1_direccion', 'ap2_nombre', 'ap2_rut', 'ap2_parentesco', 'ap2_fono', 'ap2_email', 'condiciones', 'pie', 'pie_diagnostico']);
       for (var ai = 0; ai < alumRows.length; ai++) {
         var a = alumRows[ai];
         if (!result.students[a.course]) result.students[a.course] = [];
         result.students[a.course].push({
           id: a.id, name: a.name, rut: a.rut,
-          apoderado1: a.apoderado1, apoderado2: a.apoderado2,
-          condiciones: a.condiciones, pie: a.pie === 'SI',
-          pieDiagnostico: a.pieDiagnostico
+          ap1_nombre: a.ap1_nombre, ap1_rut: a.ap1_rut, ap1_parentesco: a.ap1_parentesco, ap1_fono: a.ap1_fono, ap1_email: a.ap1_email, ap1_direccion: a.ap1_direccion,
+          ap2_nombre: a.ap2_nombre, ap2_rut: a.ap2_rut, ap2_parentesco: a.ap2_parentesco, ap2_fono: a.ap2_fono, ap2_email: a.ap2_email,
+          condiciones: a.condiciones, pie: a.pie === 'SI', pie_diagnostico: a.pie_diagnostico
         });
       }
     }
