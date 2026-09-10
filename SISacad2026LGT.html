@@ -103,6 +103,10 @@
     .stat-yellow { background: #fef3c7; color: #92400e; }
     .stat-blue { background: #dbeafe; color: #1e40af; }
 
+    .retirado-row { background: #ffedd5 !important; }
+    .retirado-row td { border-color: #fdba74; color: #9a3412; }
+    .retirado-badge { display: inline-block; padding: 0.05rem 0.35rem; border-radius: 4px; font-size: 0.65rem; font-weight: bold; background: #f97316; color: #fff; margin-left: 0.35rem; }
+
     .certificate-container {
       background: white; padding: 0.25cm 0.3cm; border: 2px solid #1e40af;
       margin: 0.5rem 0; width: 100%; font-family: system-ui, -apple-system, sans-serif; page-break-inside: avoid;
@@ -127,6 +131,8 @@
     .cert-table tr { page-break-inside: avoid; }
     .cert-table .cert-prom { font-size: 0.55rem; font-weight: bold; background: #f0f9ff; }
     .cert-table .cert-anual { font-size: 0.55rem; font-weight: bold; background: #fef3c7; }
+    .cert-table .cert-anual-row td { background: #ecfeff; border-color: #67e8f9; color: #164e63; }
+    .cert-table .cert-anual-row td:first-child { font-size: 0.5rem; }
     .cert-table td:nth-child(2), .cert-table td:nth-child(3) { font-size: 0.48rem; }
     .cert-signatures { margin-top: 0.3rem; page-break-inside: avoid; width: 100%; }
     .cert-signatures table { width: 100%; border: none; border-collapse: collapse; }
@@ -580,6 +586,7 @@
           if(!s.condiciones){s.condiciones='';changed=true;}
           if(!s.pie){s.pie=false;changed=true;}
           if(!s.pie_diagnostico){s.pie_diagnostico='';changed=true;}
+          if(!s.retirado){s.retirado=false;changed=true;}
         });
       });
       if(!appData._subjectGroups){appData._subjectGroups={};changed=true;}
@@ -667,6 +674,9 @@
       document.getElementById('totalAttendanceDays').textContent=td;
     }
 
+    function isPrevioSubject(sub) { return sub==='previo_gastro'||sub==='previo_turismo'; }
+    function isOrientacion(sub) { return sub==='orientacion'; }
+    function getConceptList() { return ['MB','B','S','I']; }
     function getOpts() { return Object.entries(COURSES_SUBJECTS).map(function(a){return'<option value="'+a[0]+'">'+a[1].name+'</option>';}).join(''); }
 
     function loadCourseSelects() {
@@ -721,7 +731,7 @@
       var subs=currentUser.role==='admin'?getSubjects(c):(currentUser.permissions.courses&&currentUser.permissions.courses[c]?getSubjects(c).filter(function(s){return currentUser.permissions.courses[c].indexOf(s)>=0;}):[]);
       sel.innerHTML=subs.map(function(id){
         var g=getSubjectGroupFor(c,id);
-        var label=(SUBJECT_NAMES[id]||id)+(g?' <small style="color:#3b82f6;">['+g.name+']</small>':'');
+        var label=(SUBJECT_NAMES[id]||id)+(g?' <small style="color:#3b82f6;">['+g.name+']</small>':'')+(isOrientacion(id)?' <small style="color:#16a34a;">[Conceptos MB/B/S/I]</small>':'');
         return'<option value="'+id+'">'+label+'</option>';
       }).join('');
       loadGradesTable();
@@ -740,22 +750,43 @@
       tbody.innerHTML=students.map(function(stu,i){
         var key=cid+'_'+sid+'_'+stu.id;
         var notes=appData.grades[key]||{};
+        var isOrient=isOrientacion(sid);
         var s1n=[],s1s=0,s1c=0;
-        for(var a=1;a<=10;a++){var v=parseFloat(notes['s1n'+a]);s1n.push(v||'');if(v&&v>=1&&v<=7){s1s+=v;s1c++;}}
+        for(var a=1;a<=10;a++){var raw=notes['s1n'+a],v=parseFloat(raw);s1n.push(isOrient?(raw||''):(v||''));if(v&&v>=1&&v<=7){s1s+=v;s1c++;}}
         var p1=s1c>0?truncate2(s1s/s1c):0;
         var s2n=[],s2s=0,s2c=0;
-        for(var b=1;b<=10;b++){var v2=parseFloat(notes['s2n'+b]);s2n.push(v2||'');if(v2&&v2>=1&&v2<=7){s2s+=v2;s2c++;}}
+        for(var b=1;b<=10;b++){var raw2=notes['s2n'+b],v2=parseFloat(raw2);s2n.push(isOrient?(raw2||''):(v2||''));if(v2&&v2>=1&&v2<=7){s2s+=v2;s2c++;}}
         var p2=s2c>0?truncate2(s2s/s2c):0;
         var pa=(p1>0&&p2>0)?round1((p1+p2)/2):(p1||p2||0);
         var ok=pa>=4.0,rs=!ok&&pa>0?'background:#fef2f2;':'';
         var readonly=currentUser.role!=='admin'&&currentUser.role!=='docente'?' readonly':'';
-        var s1i=s1n.map(function(v,j){var n=j+1,cls=(v&&v<4)?'low-grade':(v&&v>=4)?'valid-grade':'';return'<td><input type="number" min="1" max="7" step="0.01" value="'+(v||'')+'" class="'+cls+'" onchange="updGrade(\''+key+"','s1n"+n+"',this.value)\" placeholder=\"-\" "+readonly+"></td>";}).join('');
-        var s2i=s2n.map(function(v,j){var n=j+1,cls=(v&&v<4)?'low-grade':(v&&v>=4)?'valid-grade':'';return'<td><input type="number" min="1" max="7" step="0.01" value="'+(v||'')+'" class="'+cls+'" onchange="updGrade(\''+key+"','s2n"+n+"',this.value)\" placeholder=\"-\" "+readonly+"></td>";}).join('');
-        return'<tr style="'+rs+'"><td>'+(i+1)+'</td><td style="text-align:left;font-weight:600;">'+stu.name+'</td>'+s1i+'<td style="background:#bfdbfe;font-weight:bold;">'+(p1>0?fmt(p1):'-')+'</td>'+s2i+'<td style="background:#bfdbfe;font-weight:bold;">'+(p2>0?fmt(p2):'-')+'</td><td class="annual-header" style="font-size:1rem;">'+(pa>0?fmt(pa,1):'-')+(!ok&&pa>0?' R':'')+'</td></tr>';
+        var retirado=stu.retirado||false;
+        if(retirado)readonly+=' readonly disabled';
+        function conceptSelect(v,n){
+          var opts='<option value=""'+(v? '':' selected')+'>-</option>';
+          getConceptList().forEach(function(c){opts+='<option value="'+c+'"'+(v===c?' selected':'')+'>'+c+'</option>';});
+          return'<td><select style="width:56px;padding:0.2rem;border:1px solid var(--border);border-radius:4px;font-size:0.85rem;text-align:center;" onchange="updGrade(\''+key+"','"+n+"',this.value)\" "+readonly+">"+opts+'</select></td>';
+        }
+        var s1i=s1n.map(function(v,j){var n=j+1;if(isOrient)return conceptSelect(v,'s1n'+n);var cls=(v&&v<4)?'low-grade':(v&&v>=4)?'valid-grade':'';return'<td><input type="number" min="1" max="7" step="0.01" value="'+(v||'')+'" class="'+cls+'" onchange="updGrade(\''+key+"','s1n"+n+"',this.value)\" placeholder=\"-\" "+readonly+"></td>";}).join('');
+        var s2i=s2n.map(function(v,j){var n=j+1;if(isOrient)return conceptSelect(v,'s2n'+n);var cls=(v&&v<4)?'low-grade':(v&&v>=4)?'valid-grade':'';return'<td><input type="number" min="1" max="7" step="0.01" value="'+(v||'')+'" class="'+cls+'" onchange="updGrade(\''+key+"','s2n"+n+"',this.value)\" placeholder=\"-\" "+readonly+"></td>";}).join('');
+        var rowCls=retirado?' class="retirado-row"':' style="'+rs+'"';
+        var promCell=retirado?'<td class="annual-header" style="font-size:1rem;"><span class="retirado-badge">RETIRADO</span></td>':'<td class="annual-header" style="font-size:1rem;">'+(isOrient?'-':(pa>0?fmt(pa,1):'-')+(!ok&&pa>0?' R':''))+'</td>';
+        var p1Cell=retirado||isOrient?'-':(p1>0?fmt(p1):'-');
+        var p2Cell=retirado||isOrient?'-':(p2>0?fmt(p2):'-');
+        return'<tr'+rowCls+'><td>'+(i+1)+'</td><td style="text-align:left;font-weight:600;">'+stu.name+(retirado?'<span class="retirado-badge">RETIRADO</span>':'')+'</td>'+s1i+'<td style="background:#bfdbfe;font-weight:bold;">'+p1Cell+'</td>'+s2i+'<td style="background:#bfdbfe;font-weight:bold;">'+p2Cell+'</td>'+promCell+'</tr>';
       }).join('');
     }
 
     function updGrade(key,field,val) {
+      var parts=key.split('_'),cid=parts[0],sid=parts[parts.length-1],sub=parts[1];
+      var stu=(appData.students[cid]||[]).find(function(x){return x.id===sid;});
+      if(stu&&stu.retirado){showToast('Alumno retirado: no se pueden modificar sus notas',true);loadGradesTable();return;}
+      if(isOrientacion(sub)){
+        if(val!==''&&getConceptList().indexOf(val)<0){showToast('Concepto invalido: use MB, B, S o I',true);loadGradesTable();return;}
+        if(!appData.grades[key])appData.grades[key]={};
+        appData.grades[key][field]=val===''?null:val;
+        saveData();loadGradesTable();return;
+      }
       var n=parseFloat(val);
       if(val!==''&&(isNaN(n)||n<1||n>7)){showToast('Nota invalida: debe estar entre 1.0 y 7.0',true);loadGradesTable();return;}
       if(!appData.grades[key])appData.grades[key]={};
@@ -866,12 +897,18 @@
       // Pre-guardar "presente" para todos los alumnos sin registro en esta fecha
       var changed=false;
       students.forEach(function(s){
-        if(!appData.attendance[cid][s.id]){appData.attendance[cid][s.id]={};changed=true;}
-        if(!appData.attendance[cid][s.id][date]){appData.attendance[cid][s.id][date]='presente';changed=true;}
+        if(!s.retirado){
+          if(!appData.attendance[cid][s.id]){appData.attendance[cid][s.id]={};changed=true;}
+          if(!appData.attendance[cid][s.id][date]){appData.attendance[cid][s.id][date]='presente';changed=true;}
+        }
       });
       if(changed)saveData();
       var h='<table><thead><tr><th>N°</th><th>Estudiante</th><th>Estado</th><th>% Asistencia</th><th>Alertas</th></tr></thead><tbody>';
       students.forEach(function(s,i){
+        if(s.retirado){
+          h+='<tr class="retirado-row"><td>'+(i+1)+'</td><td style="text-align:left;">'+s.name+'<span class="retirado-badge">RETIRADO</span></td><td><span class="retirado-badge">CONGELADO</span></td><td>-</td><td><span class="retirado-badge" style="background:#fb923c;">Sin asistencia</span></td></tr>';
+          return;
+        }
         var st=appData.attendance[cid][s.id][date];
         var at=getAttStats(cid,s.id);
         var p=at.total>0?((at.presente+at.atrasado+at.justificado)/at.total*100):100;
@@ -888,6 +925,8 @@
     }
     function chgAtt(sel) {
       var s=sel.dataset.sid,c=sel.dataset.course,d=sel.dataset.date,v=sel.value;
+      var stu=(appData.students[c]||[]).find(function(x){return x.id===s;});
+      if(stu&&stu.retirado){showToast('Alumno retirado: no se puede registrar asistencia',true);loadAttendanceView();return;}
       if(!appData.attendance[c])appData.attendance[c]={};
       if(!appData.attendance[c][s])appData.attendance[c][s]={};
       appData.attendance[c][s][d]=v;saveData();
@@ -984,6 +1023,7 @@
         students.forEach(function(s){
           cStu++;var b4=0,sSum=0,sCnt=0,seenGroup={};
           subs.forEach(function(sub){
+            if(isPrevioSubject(sub))return;
             if(grouped[sub]){
               var g=grouped[sub];
               if(seenGroup[g.name])return;
@@ -1039,6 +1079,7 @@
                 h+='<td style="'+col+'">'+(prom>0?fmt(prom,1):'-')+'</td>';
                 if(prom>0){sSum+=prom;sCnt++;if(prom<4)b4.push(g.name);}
               } else {
+                var prev=isPrevioSubject(sub);
                 var key=cid+'_'+sub+'_'+s.id,notes=appData.grades[key]||{};
                 var s1s=0,s1c=0,s2s=0,s2c=0;
                 for(var a=1;a<=10;a++){var v1=parseFloat(notes['s1n'+a]),v2=parseFloat(notes['s2n'+a]);if(v1&&v1>=1&&v1<=7){s1s+=v1;s1c++;}if(v2&&v2>=1&&v2<=7){s2s+=v2;s2c++;}}
@@ -1046,7 +1087,7 @@
                 var prom=(p1>0&&p2>0)?round1((p1+p2)/2):(p1||p2||0);
                 var col=prom>0?(prom<4?'color:#dc2626;font-weight:bold;':'color:#16a34a;'):'color:var(--muted);';
                 h+='<td style="'+col+'">'+(prom>0?fmt(prom,1):'-')+'</td>';
-                if(prom>0){sSum+=prom;sCnt++;if(prom<4)b4.push(sub);}
+                if(!prev&&prom>0){sSum+=prom;sCnt++;if(prom<4)b4.push(sub);}
               }
             });
             var avg=sCnt>0?round1(sSum/sCnt):0;
@@ -1067,12 +1108,14 @@
       var students=appData.students[c]||[];
       if(!students.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:2rem;">Sin alumnos matriculados</td></tr>';return;}
       tbody.innerHTML=students.map(function(s,i){
+        var retirado=s.retirado||false;
         var at=getAttStats(c,s.id),pct=at.total>0?((at.presente+at.atrasado+at.justificado)/at.total*100):-1;
-        var alerts='';if(at.total>0&&pct<85)alerts+='<span class="alert-badge alert-red">ASIST: '+pct.toFixed(1)+'%</span> ';
+        var alerts='';if(!retirado&&at.total>0&&pct<85)alerts+='<span class="alert-badge alert-red">ASIST: '+pct.toFixed(1)+'%</span> ';
         var subs=getSubjects(c),tSum=0,tCnt=0,b4=0,groups=getSubjectGroups(c),grouped={};
         groups.forEach(function(g){g.subs.forEach(function(sk){grouped[sk]=g;});});
         var seenG={};
         subs.forEach(function(sub){
+          if(isPrevioSubject(sub))return;
           if(grouped[sub]){
             var g=grouped[sub];
             if(seenG[g.name])return;
@@ -1089,12 +1132,17 @@
           }
         });
         var gAvg=tCnt>0?round1(tSum/tCnt):0;
-        if(b4>=2)alerts+='<span class="alert-badge alert-red">'+b4+' RAMOS < 4.0</span> ';else if(b4===1)alerts+='<span class="alert-badge alert-yellow">'+b4+' RAMO < 4.0</span> ';
-        var rc='';if(at.total>0&&pct<85)rc=' style="background:#fef2f2;"';else if(b4>=2)rc=' style="background:#fef2f2;"';
+        if(!retirado&&b4>=2)alerts+='<span class="alert-badge alert-red">'+b4+' RAMOS < 4.0</span> ';else if(!retirado&&b4===1)alerts+='<span class="alert-badge alert-yellow">'+b4+' RAMO < 4.0</span> ';
+        var rc='';if(retirado)rc=' class="retirado-row"';else if(at.total>0&&pct<85)rc=' style="background:#fef2f2;"';else if(b4>=2)rc=' style="background:#fef2f2;"';
         var editBtn=hasEditPerm('alumnos')?'<button class="btn-primary" style="padding:0.1rem 0.3rem;font-size:0.7rem;" onclick="editStudentFicha(\''+c+"','"+s.id+'\')">Ficha</button> ':'';
         var hvBtn=hasPerm('hoja_vida')?'<button class="btn-info" style="padding:0.1rem 0.3rem;font-size:0.7rem;" onclick="showHojaVida(\''+s.id+"','"+c+"','"+s.name+'\')">Hoja de Vida</button> ':'';
+        var retBtn=hasEditPerm('alumnos')?(retirado?'<button class="btn-warning" style="padding:0.1rem 0.3rem;font-size:0.7rem;" onclick="undoRetirarAlumno(\''+c+"','"+s.id+'\')">Reincorporar</button> ':'<button class="btn-warning" style="padding:0.1rem 0.3rem;font-size:0.7rem;" onclick="retirarAlumno(\''+c+"','"+s.id+'\')">Retirar</button> '):'';
         var delBtn=hasEditPerm('alumnos')?'<button class="btn-danger" onclick="removeStudent(\''+c+"','"+s.id+'\')">Eliminar</button>':'';
-        return'<tr'+rc+'><td>'+(i+1)+'</td><td style="text-align:left;">'+s.name+'</td><td>'+(at.total>0?pct.toFixed(1)+'%':'Sin datos')+'</td><td>'+(gAvg>0?fmt(gAvg,1):'Sin notas')+'</td><td>'+(alerts||'<span style="color:var(--muted);">Sin alertas</span>')+'</td><td class="no-print">'+editBtn+hvBtn+delBtn+'</td></tr>';
+        var nameCell='<td style="text-align:left;">'+s.name+(retirado?'<span class="retirado-badge">RETIRADO</span>':'')+'</td>';
+        var attCell=retirado?'<td style="color:var(--muted);">-</td>':'<td>'+(at.total>0?pct.toFixed(1)+'%':'Sin datos')+'</td>';
+        var promCell=retirado?'<td style="color:var(--muted);">Retirado</td>':'<td>'+(gAvg>0?fmt(gAvg,1):'Sin notas')+'</td>';
+        var alertCell=retirado?'<td><span class="retirado-badge" style="background:#fb923c;">CONGELADO</span></td>':'<td>'+(alerts||'<span style="color:var(--muted);">Sin alertas</span>')+'</td>';
+        return'<tr'+rc+'><td>'+(i+1)+'</td>'+nameCell+attCell+promCell+alertCell+'<td class="no-print">'+editBtn+hvBtn+retBtn+delBtn+'</td></tr>';
       }).join('');
     }
 
@@ -1112,6 +1160,18 @@
       Object.keys(appData.grades).forEach(function(k){if(k.endsWith(id))delete appData.grades[k];});
       if(appData.attendance&&appData.attendance[c]&&appData.attendance[c][id])delete appData.attendance[c][id];
       saveData();renderStudents();updateStats();showToast('Alumno eliminado');
+    }
+
+    function retirarAlumno(c,id) {
+      if(!confirm('¿Retirar a este alumno del curso? Quedará congelado en la lista (naranja) y no se podrán registrar notas ni asistencia. Sus notas actuales se conservarán.'))return;
+      var s=appData.students[c].find(function(x){return x.id===id;});
+      if(s){s.retirado=true;saveData();renderStudents();updateStats();showToast('Alumno retirado del curso');}
+    }
+
+    function undoRetirarAlumno(c,id) {
+      if(!confirm('¿Reincorporar a este alumno al curso? Podrá registrar notas nuevamente.'))return;
+      var s=appData.students[c].find(function(x){return x.id===id;});
+      if(s){s.retirado=false;saveData();renderStudents();updateStats();showToast('Alumno reincorporado');}
     }
 
     function importCSV(input) {
@@ -1206,7 +1266,7 @@
       var cid=document.getElementById('certCourseSelect').value;
       var sel=document.getElementById('certStudentSelect');
       var students=appData.students[cid]||[];
-      sel.innerHTML='<option value="">Todos los alumnos</option>'+students.map(function(s){return'<option value="'+s.id+'">'+s.name+'</option>';}).join('');
+      sel.innerHTML='<option value="">Todos los alumnos</option>'+students.filter(function(s){return !s.retirado;}).map(function(s){return'<option value="'+s.id+'">'+s.name+'</option>';}).join('');
       document.getElementById('btnGenerateCert').disabled=false;
     }
 
@@ -1218,8 +1278,8 @@
       if(!canUserPrintCert(cid)){showToast('No tiene permisos para generar certificados de este curso',true);return;}
       var obs=document.getElementById('teacherObservations').value;
       var students=appData.students[cid]||[];
-      var student=sid?students.find(function(s){return s.id===sid;}):students[0];
-      if(!student){showToast('No hay alumnos en este curso',true);return;}
+      var student=sid?students.find(function(s){return s.id===sid&&!s.retirado;}):students.find(function(s){return !s.retirado;});
+      if(!student){showToast('No hay alumnos activos en este curso',true);return;}
       genCertHTML(cid,student,obs);
       document.getElementById('btnPrintCert').disabled=false;
     }
@@ -1228,8 +1288,8 @@
       var cid=document.getElementById('certCourseSelect').value,obs=document.getElementById('teacherObservations').value;
       if(!cid){showToast('Seleccione un curso',true);return;}
       if(!canUserPrintCert(cid)){showToast('No tiene permisos para generar certificados de este curso',true);return;}
-      var students=appData.students[cid]||[];
-      if(!students.length){showToast('No hay alumnos en este curso',true);return;}
+      var students=(appData.students[cid]||[]).filter(function(s){return !s.retirado;});
+      if(!students.length){showToast('No hay alumnos activos en este curso',true);return;}
       var all='';
       students.forEach(function(s,i){all+=genCertHTML(cid,s,obs,true);if(i<students.length-1)all+='<div style="page-break-after:always;"></div>';});
       document.getElementById('certificatePreview').innerHTML=all;
@@ -1243,6 +1303,7 @@
       var grouped={};groups.forEach(function(g){g.subs.forEach(function(s){grouped[s]=g;});});
       var rows='',tAvg=0,cnt=0,b4=[],seenGroup={};
       allSubs.forEach(function(sub){
+        if(isPrevioSubject(sub))return;
         if(grouped[sub]){
           var g=grouped[sub];
           if(seenGroup[g.name])return;
@@ -1271,19 +1332,20 @@
             '<td class="cert-prom" style="'+col1+'">'+(p1>0?'<strong>'+fmt(p1,2)+'</strong>':'-')+'</td>'+
             '<td class="cert-prom" style="'+col2+'">'+(p2>0?'<strong>'+fmt(p2,2)+'</strong>':'-')+'</td>'+
             '<td class="cert-anual" style="'+cola+'">'+(pa>0?'<strong>'+fmt(pa,1)+'</strong>':'-')+'</td></tr>';
-          if(pa>0){tAvg+=pa;cnt++;if(pa<4)b4.push(sname);}
+          if(!isPrevioSubject(sub)&&pa>0){tAvg+=pa;cnt++;if(pa<4)b4.push(sname);}
         } else {
           var key=cid+'_'+sub+'_'+student.id,notes=appData.grades[key]||{};
           var sname=SUBJECT_NAMES[sub]||sub;
+          var isOrient=isOrientacion(sub);
           var s1n=[],s1s=0,s1c=0;
-          for(var a=1;a<=10;a++){var v=parseFloat(notes['s1n'+a]);s1n.push(v);if(v&&v>=1&&v<=7){s1s+=v;s1c++;}}
+          for(var a=1;a<=10;a++){var raw=notes['s1n'+a],v=parseFloat(raw);s1n.push(isOrient?(raw||''):v);if(v&&v>=1&&v<=7){s1s+=v;s1c++;}}
           var p1=s1c>0?truncate2(s1s/s1c):0;
           var s2n=[],s2s=0,s2c=0;
-          for(var b=1;b<=10;b++){var v2=parseFloat(notes['s2n'+b]);s2n.push(v2);if(v2&&v2>=1&&v2<=7){s2s+=v2;s2c++;}}
+          for(var b=1;b<=10;b++){var raw2=notes['s2n'+b],v2=parseFloat(raw2);s2n.push(isOrient?(raw2||''):v2);if(v2&&v2>=1&&v2<=7){s2s+=v2;s2c++;}}
           var p2=s2c>0?truncate2(s2s/s2c):0;
           var pa=(p1>0&&p2>0)?round1((p1+p2)/2):(p1||p2||0);
-          var s1list=s1n.map(function(v){return(v>0?fmt(v,1):'-');}).join(' ');
-          var s2list=s2n.map(function(v){return(v>0?fmt(v,1):'-');}).join(' ');
+          var s1list=s1n.map(function(v){return isOrient?(v?String(v):'-'):(v>0?fmt(v,1):'-');}).join(' ');
+          var s2list=s2n.map(function(v){return isOrient?(v?String(v):'-'):(v>0?fmt(v,1):'-');}).join(' ');
           var col1=p1>0?(p1<4?'color:#dc2626;':''):'color:var(--muted);';
           var col2=p2>0?(p2<4?'color:#dc2626;':''):'color:var(--muted);';
           var cola=pa>0?(round1(pa)<4?'color:#dc2626;':''):'color:var(--muted);';
@@ -1293,9 +1355,31 @@
             '<td class="cert-prom" style="'+col1+'">'+(p1>0?'<strong>'+fmt(p1,2)+'</strong>':'-')+'</td>'+
             '<td class="cert-prom" style="'+col2+'">'+(p2>0?'<strong>'+fmt(p2,2)+'</strong>':'-')+'</td>'+
             '<td class="cert-anual" style="'+cola+'">'+(pa>0?'<strong>'+fmt(pa,1)+'</strong>':'-')+'</td></tr>';
-          if(pa>0){tAvg+=pa;cnt++;if(pa<4)b4.push(sname);}
+          if(!isPrevioSubject(sub)&&pa>0){tAvg+=pa;cnt++;if(pa<4)b4.push(sname);}
         }
       });
+      var anualRows='';
+      ['previo_gastro','previo_turismo'].forEach(function(sub){
+        if(allSubs.indexOf(sub)<0)return;
+        var key=cid+'_'+sub+'_'+student.id,notes=appData.grades[key]||{};
+        var sname=SUBJECT_NAMES[sub]||sub;
+        var s1n=[],s2n=[],sum=0,c=0;
+        for(var a=1;a<=10;a++){
+          var r1=notes['s1n'+a],v1=parseFloat(r1),r2=notes['s2n'+a],v2=parseFloat(r2);
+          s1n.push(v1&&v1>=1&&v1<=7?fmt(v1,1):'-');
+          if(v1&&v1>=1&&v1<=7){sum+=v1;c++;}
+          s2n.push(v2&&v2>=1&&v2<=7?fmt(v2,1):'-');
+          if(v2&&v2>=1&&v2<=7){sum+=v2;c++;}
+        }
+        var pa=c>0?round1(sum/c):0;
+        var cola=pa>0?(round1(pa)<4?'color:#dc2626;':''):'color:var(--muted);';
+        anualRows+='<tr class="cert-anual-row"><td><strong>'+sname+'</strong><br><small style="color:#0e7490;">(Anual)</small></td>'+
+          '<td style="font-size:0.55rem;">'+s1n.join(' ')+'</td>'+
+          '<td style="font-size:0.55rem;">'+s2n.join(' ')+'</td>'+
+          '<td>-</td><td>-</td>'+
+          '<td class="cert-anual" style="'+cola+'">'+(pa>0?'<strong>'+fmt(pa,1)+'</strong>':'-')+'</td></tr>';
+      });
+      rows+=anualRows;
       var gAvg=cnt>0?round1(tAvg/cnt):0;
       var ok=gAvg>=4.0,aprueba=ok?'APROBADO':'REPROBADO',apColor=ok?'#16a34a':'#dc2626';
       var at=getAttStats(cid,student.id),atPct=at.total>0?((at.presente+at.atrasado+at.justificado)/at.total*100):-1;
@@ -1313,7 +1397,9 @@
         '<div class="cert-body"><p style="text-align:center;margin-bottom:0.2rem;">El(la) estudiante:<br><span class="cert-student">'+student.name+'</span><br>Curso: <strong>'+cname+'</strong></p>'+
         '<table class="cert-table"><thead><tr><th style="width:18%;">Asignatura</th><th style="width:26%;">1° Semestre (N1-N10)</th><th style="width:26%;">2° Semestre (N1-N10)</th><th style="width:10%;"><strong>Prom 1°S</strong></th><th style="width:10%;"><strong>Prom 2°S</strong></th><th style="width:10%;"><strong>Prom Anual</strong></th></tr></thead>'+
         '<tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;">Sin notas</td></tr>')+'</tbody>'+
-        '<tfoot><tr><td style="text-align:right;">PROMEDIO GENERAL:</td><td colspan="3" style="color:'+apColor+';">'+fmt(gAvg,1)+'</td><td colspan="2" style="color:'+apColor+';font-weight:bold;">'+aprueba+'</td></tr></tfoot></table>'+
+        '<tfoot><tr><td style="text-align:right;">PROMEDIO GENERAL:</td><td colspan="3" style="color:'+apColor+';">'+fmt(gAvg,1)+'</td><td colspan="2" style="color:'+apColor+';font-weight:bold;">'+aprueba+'</td></tr>'+
+        (at.total>0?'<tr><td style="text-align:right;">PORCENTAJE DE ASISTENCIA:</td><td colspan="5" style="font-weight:bold;color:'+(atPct>=85?'#16a34a':'#dc2626')+';">'+atPct.toFixed(1)+'%</td></tr>':'')+
+        '</tfoot></table>'+
         ath+al+(observations?'<div class="cert-observations"><strong>Observaciones:</strong><br>'+observations.replace(/\n/g,'<br>')+'</div>':'')+
         '</div><div class="cert-signatures"><table><tr>'+
         '<td><div class="cert-signature"><div class="cert-signature-line"><strong>Profesor(a) Jefe</strong><br>'+cname+'</div></div></td>'+
