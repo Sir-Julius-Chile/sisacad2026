@@ -1434,7 +1434,7 @@
         '<div class="cert-body"><p style="text-align:center;margin-bottom:0.2rem;">El(la) estudiante:<br><span class="cert-student">'+student.name+'</span><br>Curso: <strong>'+cname+'</strong></p>'+
         '<table class="cert-table"><thead><tr><th style="width:18%;">Asignatura</th><th style="width:26%;">1° Semestre (N1-N10)</th><th style="width:26%;">2° Semestre (N1-N10)</th><th style="width:10%;"><strong>Prom 1°S</strong></th><th style="width:10%;"><strong>Prom 2°S</strong></th><th style="width:10%;"><strong>Prom Anual</strong></th></tr></thead>'+
         '<tbody>'+(rows||'<tr><td colspan="6" style="text-align:center;">Sin notas</td></tr>')+'</tbody>'+
-        '<tfoot><tr><td style="text-align:right;">PROMEDIO GENERAL:</td><td colspan="3" style="color:'+apColor+';">'+fmt(gAvg,1)+'</td><td colspan="2" style="color:'+apColor+';font-weight:bold;">'+aprueba+'</td></tr>'+
+        '<tfoot><tr><td style="text-align:right;">PROMEDIO GENERAL:</td><td colspan="5" style="color:'+apColor+';font-weight:bold;">'+fmt(gAvg,1)+'</td></tr>'+
         (at.total>0?'<tr><td style="text-align:right;">PORCENTAJE DE ASISTENCIA:</td><td colspan="5" style="font-weight:bold;color:'+(atPct>=85?'#16a34a':'#dc2626')+';">'+atPct.toFixed(1)+'%</td></tr>':'')+
         '</tfoot></table>'+
         ath+al+(observations?'<div class="cert-observations"><strong>Observaciones:</strong><br>'+observations.replace(/\n/g,'<br>')+'</div>':'')+
