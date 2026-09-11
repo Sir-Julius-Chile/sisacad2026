@@ -675,6 +675,18 @@
     }
 
     function isPrevioSubject(sub) { return sub==='previo_gastro'||sub==='previo_turismo'; }
+    var ANUAL_SUBJECTS=['baja_complejidad','recepcion_almacenamiento','planificacion_produccion','diseno_montaje','servicio_comedor','elaboracion_masas','higiene_alimentos','sistemas_reservas','prevencion_seguridad','ingles_oral','patrimonio_chile','atencion_cliente','servicios_recepcion','innovacion_cocina','cocina_chilena','menu_carta','emprendimiento','bebidas','pasteleria','analisis_empresa','patrimonio_mundo','conduccion_grupos','elaboracion_programas','ingles_escrito','animacion_grupos'];
+    function isAnualSubject(sub) { return ANUAL_SUBJECTS.indexOf(sub)>=0; }
+    function computeAnualAverage(cid,sub,sid) {
+      var key=cid+'_'+sub+'_'+sid,notes=appData.grades[key]||{};
+      var sum=0,c=0;
+      for(var a=1;a<=10;a++){
+        var v1=parseFloat(notes['s1n'+a]),v2=parseFloat(notes['s2n'+a]);
+        if(v1&&v1>=1&&v1<=7){sum+=v1;c++;}
+        if(v2&&v2>=1&&v2<=7){sum+=v2;c++;}
+      }
+      return c>0?round1(sum/c):0;
+    }
     function isOrientacion(sub) { return sub==='orientacion'; }
     function getConceptList() { return ['MB','B','S','I']; }
     function getOpts() { return Object.entries(COURSES_SUBJECTS).map(function(a){return'<option value="'+a[0]+'">'+a[1].name+'</option>';}).join(''); }
@@ -1024,6 +1036,11 @@
           cStu++;var b4=0,sSum=0,sCnt=0,seenGroup={};
           subs.forEach(function(sub){
             if(isPrevioSubject(sub))return;
+            if(isAnualSubject(sub)){
+              var pa=computeAnualAverage(id,sub,s.id);
+              if(pa>0){sSum+=pa;sCnt++;if(pa<4)b4++;}
+              return;
+            }
             if(grouped[sub]){
               var g=grouped[sub];
               if(seenGroup[g.name])return;
@@ -1069,6 +1086,13 @@
             h+='<tr><td>'+(i+1)+'</td><td style="text-align:left;">'+s.name+'</td>';
             var seenG2={};
             subs.forEach(function(sub){
+              if(isAnualSubject(sub)){
+                var pa=computeAnualAverage(cid,sub,s.id);
+                var colA=pa>0?(pa<4?'color:#dc2626;font-weight:bold;':'color:#16a34a;'):'color:var(--muted);';
+                h+='<td style="'+colA+'">'+(pa>0?fmt(pa,1):'-')+'</td>';
+                if(pa>0){sSum+=pa;sCnt++;if(pa<4)b4.push(sub);}
+                return;
+              }
               if(grouped[sub]){
                 var g=grouped[sub];
                 if(seenG2[g.name])return;
@@ -1116,6 +1140,11 @@
         var seenG={};
         subs.forEach(function(sub){
           if(isPrevioSubject(sub))return;
+          if(isAnualSubject(sub)){
+            var pa=computeAnualAverage(c,sub,s.id);
+            if(pa>0){tSum+=pa;tCnt++;if(pa<4)b4++;}
+            return;
+          }
           if(grouped[sub]){
             var g=grouped[sub];
             if(seenG[g.name])return;
@@ -1304,6 +1333,7 @@
       var rows='',tAvg=0,cnt=0,b4=[],seenGroup={};
       allSubs.forEach(function(sub){
         if(isPrevioSubject(sub))return;
+        if(isAnualSubject(sub))return;
         if(grouped[sub]){
           var g=grouped[sub];
           if(seenGroup[g.name])return;
@@ -1359,8 +1389,7 @@
         }
       });
       var anualRows='';
-      ['previo_gastro','previo_turismo'].forEach(function(sub){
-        if(allSubs.indexOf(sub)<0)return;
+      function buildAnualRow(sub,countTowardsAvg){
         var key=cid+'_'+sub+'_'+student.id,notes=appData.grades[key]||{};
         var sname=SUBJECT_NAMES[sub]||sub;
         var s1n=[],s2n=[],sum=0,c=0;
@@ -1378,6 +1407,14 @@
           '<td style="font-size:0.55rem;">'+s2n.join(' ')+'</td>'+
           '<td>-</td><td>-</td>'+
           '<td class="cert-anual" style="'+cola+'">'+(pa>0?'<strong>'+fmt(pa,1)+'</strong>':'-')+'</td></tr>';
+        if(countTowardsAvg&&pa>0){tAvg+=pa;cnt++;if(pa<4)b4.push(sname);}
+      }
+      ['previo_gastro','previo_turismo'].forEach(function(sub){
+        if(allSubs.indexOf(sub)<0)return;
+        buildAnualRow(sub,false);
+      });
+      allSubs.forEach(function(sub){
+        if(isAnualSubject(sub))buildAnualRow(sub,true);
       });
       rows+=anualRows;
       var gAvg=cnt>0?round1(tAvg/cnt):0;
