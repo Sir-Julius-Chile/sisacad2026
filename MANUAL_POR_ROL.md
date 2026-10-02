@@ -14,6 +14,7 @@ SLEP Marga Marga
 4. [Rol: Inspector](#4-rol-inspector)
 5. [Rol: Equipo PIE](#5-rol-equipo-pie)
 6. [Rol: Paradocente](#6-rol-paradocente)
+7. [Capturas de Pantalla del Sistema](#7-capturas-de-pantalla-del-sistema)
 
 ---
 
@@ -250,6 +251,287 @@ El docente solo puede ver los cursos y asignaturas que el Administrador le haya 
 #### Estadísticas (Solo Lectura)
 - Ver estadísticas generales
 - Ver estadísticas de asistencia
+
+---
+
+## 7. Capturas de Pantalla del Sistema
+
+### 7.1 Pantalla de Inicio de Sesión
+
+**Descripción:** Pantalla principal donde el usuario ingresa sus credenciales.
+
+**Elementos:**
+- Logo del Liceo Gastronomía y Turismo
+- Logo SLEP Marga Marga
+- Campo "Usuario"
+- Campo "Contraseña"
+- Botón "Ingresar al Sistema"
+
+**Captura recomendada:** Mostrar la pantalla de login con los logos y campos de entrada.
+
+---
+
+### 7.2 Panel Principal - Resumen
+
+**Descripción:** Vista general del sistema con estadísticas rápidas.
+
+**Elementos:**
+- Barra superior con logos y nombre del sistema
+- Tarjetas de resumen:
+  - Total Alumnos
+  - Cursos (20)
+  - Asignaturas
+  - Días Asistencia
+- Pestañas de navegación
+
+**Captura recomendada:** Mostrar las 4 tarjetas de resumen con datos reales.
+
+---
+
+### 7.3 Pestaña: Notas
+
+**Descripción:** Interfaz para ver y gestionar calificaciones.
+
+**Elementos:**
+- Selector de Curso
+- Selector de Asignatura
+- Tabla con columnas:
+  - N° (número de lista)
+  - Estudiante (nombre completo)
+  - 1° Semestre (N1-N10)
+  - Prom 1°S (promedio primer semestre)
+  - 2° Semestre (N1-N10)
+  - Prom 2°S (promedio segundo semestre)
+  - Prom Anual
+- Botón "Guardar Notas"
+- Indicador "(Solo lectura)" para usuarios sin permisos de edición
+
+**Captura recomendada:** Mostrar la tabla de notas con datos de un curso específico (ej: 1B Lenguaje).
+
+---
+
+### 7.4 Pestaña: Asistencia
+
+**Descripción:** Control de asistencia diaria.
+
+**Elementos:**
+- Selector de Curso
+- Selector de Mes
+- Calendario escolar con días hábiles
+- Navegación entre días (flechas ← →)
+- Tabla de asistencia con estados:
+  - Presente (verde)
+  - Ausente (rojo)
+  - Atrasado (amarillo)
+  - Justificado (azul)
+- Botón "Guardar Asistencia"
+- Botón "Ver Estadísticas"
+
+**Captura recomendada:** Mostrar el calendario y la tabla de asistencia con diferentes estados.
+
+---
+
+### 7.5 Pestaña: Estadísticas
+
+**Descripción:** Resumen estadístico del curso.
+
+**Elementos:**
+- Selector de Curso
+- Selector de Tipo (General, Asistencia, Notas/Rendimiento)
+- Gráficos de barras SVG
+- Tablas de datos
+- Botón "Actualizar"
+- Botón "Imprimir Informe"
+
+**Captura recomendada:** Mostrar los gráficos de barras con datos de rendimiento.
+
+---
+
+### 7.6 Pestaña: Asignaturas
+
+**Descripción:** Consulta de asignaturas por curso.
+
+**Elementos:**
+- Selector de Curso
+- Lista de asignaturas del curso seleccionado
+
+**Captura recomendada:** Mostrar la lista de asignaturas de un curso (ej: 3MA Gastronomía).
+
+---
+
+### 7.7 Pestaña: Alumnos
+
+**Descripción:** Gestión de matrícula y fichas de alumnos.
+
+**Elementos:**
+- Selector de Curso
+- Campo para agregar nuevo alumno
+- Botón "+ Agregar"
+- Importar desde CSV
+- Tabla con:
+  - N°
+  - Nombre completo
+  - % Asistencia
+  - Promedio General
+  - Alertas
+  - Acción (Retirar/Reincorporar)
+
+**Captura recomendada:** Mostrar la tabla de alumnos con datos reales.
+
+---
+
+### 7.8 Pestaña: Certificados
+
+**Descripción:** Generación de certificados de notas.
+
+**Elementos:**
+- Selector de Curso
+- Selector de Alumno (o "Todos los alumnos del curso")
+- Campo "Observaciones del Profesor Jefe"
+- Botones:
+  - "Generar Certificado Individual"
+  - "Generar Todo el Curso"
+  - "Imprimir"
+- Vista previa del certificado
+
+**Captura recomendada:** Mostrar la vista previa de un certificado generado.
+
+---
+
+### 7.9 Pestaña: Citaciones
+
+**Descripción:** Gestión de citaciones a apoderados.
+
+**Elementos:**
+- Botón "+ Nueva Citación"
+- Selector de Curso
+- Selector de Departamento
+- Lista de citaciones existentes
+- Modal de nueva citación con campos:
+  - Alumno
+  - Fecha
+  - Departamento
+  - Hora inicio/término
+  - Motivo
+  - Observación
+  - Pertenece a PIE
+  - ¿Asistió?
+
+**Captura recomendada:** Mostrar el modal de nueva citación.
+
+---
+
+### 7.10 Pestaña: Usuarios
+
+**Descripción:** Gestión de usuarios del sistema (solo Admin).
+
+**Elementos:**
+- Formulario de nuevo usuario:
+  - Usuario
+  - Contraseña
+  - Rol (Administrador, Equipo Directivo, Docente, Inspector, Equipo PIE, Paradocente)
+- Lista de usuarios registrados
+- Botones de acción (Editar, Clave, Eliminar)
+
+**Captura recomendada:** Mostrar el formulario de creación de usuario.
+
+---
+
+### 7.11 Pestaña: Backup/Sync
+
+**Descripción:** Sincronización con Google Sheets y backup local.
+
+**Elementos:**
+- Campo "Google Apps Script URL"
+- Botones:
+  - "Subir datos"
+  - "Descargar datos"
+  - "Probar conexión"
+  - "Depurar"
+  - "Activar Auto-Sync cada 2min"
+- Estado de sincronización
+- Botones de backup local:
+  - "Exportar backup"
+  - "Cargar backup"
+
+**Captura recomendada:** Mostrar el panel de sincronización con el estado "Listo para sincronizar".
+
+---
+
+### 7.12 Hoja de Vida del Alumno
+
+**Descripción:** Ficha detallada del alumno con datos de apoderados.
+
+**Elementos:**
+- Nombre del alumno
+- Datos del Apoderado 1:
+  - Nombre
+  - RUT
+  - Parentesco
+  - Fono
+  - Email
+  - Dirección
+- Datos del Apoderado 2:
+  - Nombre
+  - RUT
+  - Parentesco
+  - Fono
+  - Email
+- Condiciones especiales
+- Diagnóstico PIE
+- Botón "Guardar Ficha"
+
+**Captura recomendada:** Mostrar la hoja de vida con datos de ejemplo.
+
+---
+
+### 7.13 Certificado Generado
+
+**Descripción:** Vista previa del certificado de notas.
+
+**Elementos:**
+- Encabezado con logos
+- Nombre del alumno y curso
+- Tabla de calificaciones:
+  - Asignaturas
+  - Notas 1° Semestre
+  - Notas 2° Semestre
+  - Promedios
+- Porcentaje de Asistencia
+- Promedio General
+- Observaciones
+- Firmas (Director y Profesor Jefe)
+
+**Captura recomendada:** Mostrar un certificado completo con datos reales.
+
+---
+
+### 7.14 Estadísticas de Asistencia
+
+**Descripción:** Resumen de asistencia por alumno.
+
+**Elementos:**
+- Tabla con:
+  - Nombre del alumno
+  - Porcentaje de asistencia
+  - Alerta (si < 85%)
+- Gráfico de barras
+
+**Captura recomendada:** Mostrar la tabla de estadísticas con alertas.
+
+---
+
+### 7.15 Impresión de Informe
+
+**Descripción:** Vista de impresión del informe estadístico.
+
+**Elementos:**
+- Encabezado del liceo
+- Tabla de datos
+- Gráficos
+- Formato optimizado para impresión
+
+**Captura recomendada:** Mostrar el informe en modo de impresión.
 
 ---
 
