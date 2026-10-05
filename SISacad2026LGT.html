@@ -265,6 +265,7 @@
       <button class="nav-tab" data-tab="citaciones">Citaciones</button>
       <button class="nav-tab" data-tab="usuarios">Usuarios</button>
       <button class="nav-tab" data-tab="sincronizar">Backup/Sync</button>
+      <button class="nav-tab" data-tab="registro">Registro</button>
     </div>
 
     <div class="container">
@@ -461,6 +462,26 @@
           </div>
         </div>
       </div>
+
+      <div id="tab-registro" class="tab-content hidden">
+        <div class="card no-print">
+          <h3>Registro de Actividades</h3>
+          <p style="color:var(--muted);margin-bottom:1rem;">Historial de acciones realizadas por los usuarios en el sistema.</p>
+          <div class="grid-3 mb-1">
+            <div class="form-group"><label>Filtrar por usuario:</label><select id="registroUser" onchange="loadActivityLog()"><option value="">Todos los usuarios</option></select></div>
+            <div class="form-group"><label>Filtrar por acción:</label><select id="registroAction" onchange="loadActivityLog()"><option value="">Todas las acciones</option></select></div>
+            <div class="form-group flex" style="align-items:flex-end;"><button class="btn-primary" onclick="loadActivityLog()">Actualizar</button><button class="btn-muted" onclick="exportActivityLog()">Exportar CSV</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-container">
+            <table>
+              <thead><tr><th>Fecha/Hora</th><th>Usuario</th><th>Acción</th><th>Detalles</th></tr></thead>
+              <tbody id="activityLogBody"><tr><td colspan="4" style="text-align:center;padding:2rem;">Cargando registro...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -534,7 +555,8 @@
     var DEFAULT_DATA = {
       users:[{id:'u1',username:'admin',passwordHash:'c81da252bb0cdc8b1fbbb1ca80a97775b204b336d461718d791ebc5897bf581f',role:'admin',permissions:{all:true},headTeacherCourse:''},{id:'u2',username:'jmolina',passwordHash:'75a2916ba989770d39bacb60f0cbfd6432bc55d0e0f860e47e5c54661e065299',role:'admin',permissions:{all:true},headTeacherCourse:''}],
       students:{},grades:{},attendance:{},observations:{},_citations:[],_subjectGroups:{},_schoolYear:{start:'2026-03-04',end:'2026-12-18',end4medio:'2026-11-20',winterStart:'2026-06-22',winterEnd:'2026-07-03',holidays:['2026-05-01','2026-05-21','2026-05-22','2026-06-29','2026-07-16','2026-07-17','2026-08-15','2026-09-18','2026-09-19','2026-10-12','2026-10-31','2026-11-01','2026-12-08']},
-      gasUrl:'https://script.google.com/macros/s/AKfycbxca1-haAmN5Brdo6wFAZ5_E2slPJJECxFkL7xywzklg100Lf4Ry8gd6fMrzmaZunn3JA/exec'
+      gasUrl:'https://script.google.com/macros/s/AKfycbxca1-haAmN5Brdo6wFAZ5_E2slPJJECxFkL7xywzklg100Lf4Ry8gd6fMrzmaZunn3JA/exec',
+      activityLog:[]
     };
     Object.keys(COURSES_SUBJECTS).forEach(function(c){DEFAULT_DATA.students[c]=[];});
 
@@ -597,6 +619,84 @@
 
     function generateId() { return Math.random().toString(36).substr(2,9)+Date.now().toString(36); }
 
+    // Registro de actividades del usuario
+    function logActivity(action, details) {
+      if (!appData.activityLog) appData.activityLog = [];
+      var entry = {
+        id: generateId(),
+        userId: currentUser ? currentUser.id : 'system',
+        username: currentUser ? currentUser.username : 'sistema',
+        action: action,
+        details: details || '',
+        timestamp: new Date().toISOString()
+      };
+      appData.activityLog.push(entry);
+      // Mantener solo los últimos 1000 registros
+      if (appData.activityLog.length > 1000) {
+        appData.activityLog = appData.activityLog.slice(-1000);
+      }
+      saveData();
+    }
+
+    function loadActivityLog() {
+      var tbody = document.getElementById('activityLogBody');
+      if (!tbody) return;
+      var log = appData.activityLog || [];
+      // Ordenar por fecha descendente
+      log.sort(function(a,b){ return new Date(b.timestamp) - new Date(a.timestamp); });
+      // Aplicar filtros
+      var filterUser = document.getElementById('registroUser') ? document.getElementById('registroUser').value : '';
+      var filterAction = document.getElementById('registroAction') ? document.getElementById('registroAction').value : '';
+      if (filterUser) log = log.filter(function(e){ return e.username === filterUser; });
+      if (filterAction) log = log.filter(function(e){ return e.action === filterAction; });
+      // Límite de 200 filas
+      log = log.slice(0, 200);
+      if (log.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;">No hay registros de actividad</td></tr>';
+        return;
+      }
+      tbody.innerHTML = log.map(function(e){
+        var fecha = new Date(e.timestamp);
+        var fechaStr = fecha.toLocaleString('es-CL');
+        return '<tr><td>'+fechaStr+'</td><td>'+e.username+'</td><td>'+e.action+'</td><td>'+(e.details||'')+'</td></tr>';
+      }).join('');
+      // Llenar selects de filtro
+      var selUser = document.getElementById('registroUser');
+      var selAction = document.getElementById('registroAction');
+      if (selUser && selUser.options.length <= 1) {
+        var usuarios = {};
+        (appData.activityLog||[]).forEach(function(e){ usuarios[e.username]=1; });
+        Object.keys(usuarios).sort().forEach(function(u){
+          selUser.innerHTML += '<option value="'+u+'">'+u+'</option>';
+        });
+      }
+      if (selAction && selAction.options.length <= 1) {
+        var acciones = {};
+        (appData.activityLog||[]).forEach(function(e){ acciones[e.action]=1; });
+        Object.keys(acciones).sort().forEach(function(a){
+          selAction.innerHTML += '<option value="'+a+'">'+a+'</option>';
+        });
+      }
+    }
+
+    function exportActivityLog() {
+      var log = appData.activityLog || [];
+      if (log.length === 0) { showToast('No hay registros para exportar', true); return; }
+      var csv = 'Fecha,Usuario,Accion,Detalles\n';
+      log.forEach(function(e){
+        var fecha = new Date(e.timestamp).toLocaleString('es-CL');
+        csv += '"'+fecha+'","'+e.username+'","'+e.action+'","'+(e.details||'').replace(/"/g,'""')+'"\n';
+      });
+      var blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'registro_actividades_'+getToday()+'.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('Registro exportado');
+    }
+
     async function hashPassword(pass) {
       var buf = new TextEncoder().encode(pass);
       var h = await crypto.subtle.digest('SHA-256', buf);
@@ -625,10 +725,16 @@
       document.getElementById('loginOverlay').classList.add('hidden');
       document.getElementById('appContainer').classList.remove('hidden');
       document.getElementById('userDisplay').textContent=currentUser.username+' ('+(ROLE_LABELS[currentUser.role]||currentUser.role)+')';
+      logActivity('LOGIN', 'Usuario '+currentUser.username+' inició sesión');
       initUI(); showToast('Bienvenido, '+currentUser.username);
     }
 
-    function handleLogout() { localStorage.removeItem('slepCurrentUser'); currentUser=null; location.reload(); }
+    function handleLogout() { 
+      if (currentUser) {
+        logActivity('LOGOUT', 'Usuario '+currentUser.username+' cerró sesión');
+      }
+      localStorage.removeItem('slepCurrentUser'); currentUser=null; location.reload(); 
+    }
 
     function initUI() {
       document.querySelectorAll('.nav-tab').forEach(function(tab){
@@ -648,12 +754,17 @@
             case'certificados':loadCertificateCourses();break;
             case'citaciones':loadCitacionesTab();break;
             case'sincronizar':document.getElementById('gasUrl').value=appData.gasUrl||DEFAULT_DATA.gasUrl;break;
+            case'registro':loadActivityLog();break;
           }
         };
       });
       document.querySelectorAll('.nav-tab').forEach(function(t){
         var mod=t.dataset.tab==='asignaturas'?'notas':t.dataset.tab;
-        t.style.display=hasPerm(mod)?'':'none';
+        if(t.dataset.tab==='registro'){
+          t.style.display=(currentUser&&currentUser.role==='admin')?'':'none';
+        } else {
+          t.style.display=hasPerm(mod)?'':'none';
+        }
       });
       updateStats(); loadCourseSelects();
     }
@@ -763,7 +874,13 @@
       saveData();loadGradesTable();
     }
 
-    function saveGrades(){saveData();showToast('Notas guardadas correctamente');}
+    function saveGrades(){
+      var curso=document.getElementById('noteCourseSelect').value;
+      var asignatura=document.getElementById('noteSubjectSelect').value;
+      saveData();
+      logActivity('GUARDAR_NOTAS', 'Notas guardadas en '+curso+' - '+asignatura);
+      showToast('Notas guardadas correctamente');
+    }
 
     function loadAttendanceTab(){
       syncAttCourse();
@@ -895,7 +1012,13 @@
       loadAttendanceView();
     }
 
-    function saveAttendance(){saveData();updateStats();showToast('Asistencia guardada correctamente');}
+    function saveAttendance(){
+      var curso=document.getElementById('attCourseSelect').value;
+      saveData();
+      updateStats();
+      logActivity('GUARDAR_ASISTENCIA', 'Asistencia guardada en '+curso);
+      showToast('Asistencia guardada correctamente');
+    }
 
     function getAttStats(cid,sid) {
       var r={presente:0,ausente:0,atrasado:0,justificado:0,total:0};
@@ -1103,15 +1226,20 @@
       if(!n){showToast('Ingrese nombre del alumno',true);return;}
       if(appData.students[c].find(function(s){return s.name.toLowerCase()===n.toLowerCase();})){showToast('Alumno ya existe en este curso',true);return;}
       appData.students[c].push({id:generateId(),name:n});saveData();renderStudents();updateStats();
+      logActivity('AGREGAR_ALUMNO', 'Agregó alumno: '+n+' al curso '+c);
       document.getElementById('newStudentName').value='';showToast('Alumno agregado correctamente');
     }
 
     function removeStudent(c,id) {
       if(!confirm('Esta seguro de eliminar este alumno? Se perderan todas sus notas y asistencia.'))return;
+      var nombre='';
+      appData.students[c].forEach(function(s){if(s.id===id)nombre=s.name;});
       appData.students[c]=appData.students[c].filter(function(s){return s.id!==id;});
       Object.keys(appData.grades).forEach(function(k){if(k.endsWith(id))delete appData.grades[k];});
       if(appData.attendance&&appData.attendance[c]&&appData.attendance[c][id])delete appData.attendance[c][id];
-      saveData();renderStudents();updateStats();showToast('Alumno eliminado');
+      saveData();renderStudents();updateStats();
+      logActivity('ELIMINAR_ALUMNO', 'Eliminó alumno: '+nombre+' del curso '+c);
+      showToast('Alumno eliminado');
     }
 
     function importCSV(input) {
@@ -1394,7 +1522,11 @@
       if(!appData._citations)appData._citations=[];
       if(id){var idx=appData._citations.findIndex(function(x){return x.id===id;});if(idx>=0)appData._citations[idx]=obj;}
       else appData._citations.push(obj);
-      saveData();closeCitacionModal();loadCitaciones();showToast('Citación '+(id?'actualizada':'creada'));
+      saveData();closeCitacionModal();loadCitaciones();
+      var nombreAlumno='';
+      (appData.students[cid]||[]).forEach(function(s){if(s.id===sid)nombreAlumno=s.name;});
+      logActivity(id?'EDITAR_CITACION':'CREAR_CITACION', (id?'Editó':'Creó')+' citación para '+nombreAlumno+' en '+cid);
+      showToast('Citación '+(id?'actualizada':'creada'));
     }
 
     function editCitacion(id){
@@ -1756,14 +1888,21 @@
       var hc=r==='docente'?document.getElementById('newUserHeadCourse').value:'';
       if(r==='docente'&&Object.keys(perms.courses||{}).length===0&&!confirm('El usuario no tiene permisos de notas asignados. Desea continuar?'))return;
       appData.users.push({id:generateId(),username:u,passwordHash:h,role:r,permissions:perms,headTeacherCourse:hc});
-      saveData();loadUsersUI();showToast('Usuario creado correctamente');
+      saveData();loadUsersUI();
+      logActivity('CREAR_USUARIO', 'Creó usuario: '+u+' con rol '+r);
+      showToast('Usuario creado correctamente');
       document.getElementById('newUsername').value='';document.getElementById('newUserPass').value='';
     }
 
     function deleteUser(id) {
       var u=appData.users.find(function(x){return x.id===id;});if(!u)return;
       if(u.username==='admin'){showToast('No se puede eliminar el usuario administrador',true);return;}
-      if(confirm('Esta seguro de eliminar al usuario "'+u.username+'"?')){appData.users=appData.users.filter(function(x){return x.id!==id;});saveData();loadUsersUI();showToast('Usuario eliminado correctamente');}
+      if(confirm('Esta seguro de eliminar al usuario "'+u.username+'"?')){
+        appData.users=appData.users.filter(function(x){return x.id!==id;});
+        saveData();loadUsersUI();
+        logActivity('ELIMINAR_USUARIO', 'Eliminó usuario: '+u.username);
+        showToast('Usuario eliminado correctamente');
+      }
     }
 
     function renderBarChart(data,labelKey,valKey,maxVal,barColor,title) {
@@ -2067,6 +2206,35 @@
 
     async function syncToCloud() {
       var url=document.getElementById('gasUrl').value.trim()||DEFAULT_DATA.gasUrl,st=document.getElementById('syncStatus');
+      
+      // Verificar si el usuario ya tiene datos descargados
+      var hasLocalData = appData.grades && Object.keys(appData.grades).length > 0;
+      var hasLocalStudents = appData.students && Object.keys(appData.students).length > 0;
+      
+      if (!hasLocalData || !hasLocalStudents) {
+        st.innerHTML='Primera sincronización: descargando datos actualizados...';
+        showToast('Primera sincronización: descargando datos de la nube...');
+        
+        try {
+          var j = await jsonpRequest(url+(url.indexOf('?')>-1?'&':'?')+'action=load&t='+Date.now(),'callback',60000);
+          if(j && j.success && j.data) {
+            var gk = j.data.grades ? Object.keys(j.data.grades).length : 0;
+            st.innerHTML='Datos descargados. Notas: '+gk+' claves. Ahora subiendo...';
+            appData = j.data;
+            saveData();
+            showToast('Datos descargados correctamente');
+          } else {
+            st.innerHTML='No hay datos en la nube para descargar';
+            showToast('No se encontraron datos en la nube', true);
+            return;
+          }
+        } catch(e) {
+          st.innerHTML='Error al descargar: '+e.message;
+          showToast('Error al descargar datos: '+e.message, true);
+          return;
+        }
+      }
+      
       st.innerHTML='Subiendo datos...';
       try{
         await formPost(url,JSON.stringify({action:'save',timestamp:new Date().toISOString(),version:'3.0',data:appData}));
